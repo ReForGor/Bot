@@ -9,11 +9,15 @@ import asyncio
 
 def load_opus():
     if not discord.opus.is_loaded():
-        try:
-            discord.opus.load_opus("libopus.so")  # สำหรับ Linux
-            # discord.opus.load_opus("opus.dll")  # สำหรับ Windows
-        except Exception as e:
-            print(f"❌ ไม่สามารถโหลด Opus ได้: {e}")
+        possible_paths = ["/usr/lib/libopus.so", "/usr/lib/x86_64-linux-gnu/libopus.so"]
+        for path in possible_paths:
+            try:
+                discord.opus.load_opus(path)
+                print(f"✅ โหลด Opus สำเร็จจาก {path}")
+                return
+            except Exception as e:
+                continue
+        print("❌ ไม่สามารถโหลด Opus ได้: ตรวจสอบว่าติดตั้ง `libopus-dev` แล้ว")
 
 load_opus()
 
@@ -91,7 +95,7 @@ async def play(ctx, url: str):
 
     if not ctx.voice_client:
         await ctx.invoke(join)
-
+    
     await ctx.send(f"🎵 กำลังดาวน์โหลดเพลงจาก: {url}")
     ydl_opts = {
         'format': 'bestaudio/best',
@@ -102,17 +106,17 @@ async def play(ctx, url: str):
         }],
         'outtmpl': 'song.mp3'
     }
-
+    
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=True)
-
+    
     voice_client = ctx.voice_client
     if voice_client.is_playing():
         voice_client.stop()
-
+    
     source = FFmpegPCMAudio("song.mp3")
     voice_client.play(source)
-
+    
     await ctx.send(f"🎶 กำลังเล่น: {info['title']}")
 
 @bot.command()
@@ -122,7 +126,6 @@ async def stop(ctx):
         await ctx.send("⏹️ หยุดเพลงแล้ว!")
     else:
         await ctx.send("❌ ไม่มีเพลงที่กำลังเล่นอยู่!")
-
 
 server_on()
 bot.run(TOKEN)
